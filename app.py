@@ -24,70 +24,64 @@ st.set_page_config(page_title="Point Thunes !", page_icon="💖")
 
 st.markdown("""
     <style>
-    /* 1. POLICE ET FOND */
+    /* 1. FOND ET POLICE */
     html, body, [data-testid="stAppViewContainer"] {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
         background-color: #FF007F !important;
+        font-family: sans-serif !important;
     }
 
-    /* 2. SIDEBAR : NETTOYAGE RADICAL */
+    /* 2. SIDEBAR - ROSE PALE */
     [data-testid="stSidebar"] { 
         background-color: #FFC0CB !important; 
     }
+
+    /* FIX DES TITRES FANTÔMES DANS LA SIDEBAR */
+    /* On cache l'icône de flèche moche et le texte système résiduel */
+    [data-testid="stSidebar"] summary svg { display: none !important; }
     
-    /* Supprime le texte fantôme jaune/superposé dans les expanders */
-    [data-testid="stSidebar"] summary div p {
-        display: none !important;
-    }
-    
-    /* Force un seul titre propre pour les expanders */
-    [data-testid="stSidebar"] summary span {
+    /* On stylise l'intitulé pour qu'il soit bien visible en rose foncé */
+    [data-testid="stSidebar"] summary {
         color: #800040 !important;
         font-weight: bold !important;
         font-size: 1.1rem !important;
+        list-style: none !important; /* Enlève la puce par défaut */
     }
 
-    /* Couleurs des labels et textes dans la sidebar */
+    /* Forcer la couleur des textes classiques dans la sidebar */
     [data-testid="stSidebar"] label, [data-testid="stSidebar"] p {
         color: #800040 !important;
-        text-shadow: none !important;
     }
 
-    /* 3. BOUTONS : Look Flashy et Lisible */
+    /* 3. BOUTONS - JAUNE ET TEXTE NOIR */
     .stButton > button {
         background-color: #FFF333 !important;
-        color: #000000 !important;
         border: 3px solid #000000 !important;
         border-radius: 20px !important;
-        font-weight: 900 !important;
-        text-transform: uppercase;
     }
     
+    /* On force le texte noir dans le bouton */
     .stButton > button div p {
         color: #000000 !important;
+        font-weight: 900 !important;
         font-size: 18px !important;
     }
 
-    /* 4. ÉCRAN PRINCIPAL */
-    h1, h2, h3, [data-testid="stMarkdownContainer"] p { 
+    /* 4. ECRAN PRINCIPAL - JAUNE FLUO */
+    h1, h2, h3, [data-testid="stSubheader"] p { 
         color: #FFF333 !important; 
     }
-    
+
     /* Metrics */
     [data-testid="stMetric"] {
         background-color: #FFF333 !important;
         border: 3px solid #000000 !important;
         border-radius: 15px !important;
-        color: #000000 !important;
     }
     [data-testid="stMetricLabel"] p { color: #000000 !important; }
     [data-testid="stMetricValue"] div { color: #FF007F !important; }
 
-    /* Barres de progression */
+    /* Barre de progression jaune */
     .stProgress > div > div > div > div { background-color: #FFF333 !important; }
-    
-    /* Inputs */
-    input { background-color: #ffffff !important; color: #000000 !important; border: 2px solid #800040 !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -103,51 +97,50 @@ if 'enveloppes' not in st.session_state:
 
 # --- MENU LATÉRAL ---
 with st.sidebar:
-    st.markdown("# ⚙️ CONFIG")
+    st.markdown("### ⚙️ CONFIG")
     
-    # Expander 1
-    with st.expander("Ajouter une enveloppe", expanded=False):
-        nom = st.text_input("Nom de l'enveloppe", key="add_nom")
-        budget = st.number_input("Budget mensuel (€)", min_value=0.0, key="add_budget")
+    # Titre manuel pour être sûr de le voir
+    with st.expander("💖 AJOUTER ENVELOPPE", expanded=False):
+        nom = st.text_input("Nom de l'enveloppe")
+        budget = st.number_input("Montant mensuel (€)", min_value=0.0)
         if st.button("CRÉER"):
             if nom:
                 st.session_state.enveloppes[nom] = {'budget': budget, 'spent': 0.0}
                 save_data()
                 st.rerun()
             
-    # Expander 2
-    with st.expander("Objectif Épargne", expanded=False):
+    with st.expander("⭐ OBJECTIF ÉPARGNE", expanded=False):
         st.session_state.epargne["nom"] = st.text_input("Nom de l'objectif", value=st.session_state.epargne["nom"])
         st.session_state.epargne["objectif"] = st.number_input("Montant cible", value=float(st.session_state.epargne["objectif"]))
         st.session_state.epargne["actuel"] = st.number_input("Déjà épargné", value=float(st.session_state.epargne["actuel"]))
-        if st.button("SAUVER"):
+        if st.button("SAUVER CONFIG"):
             save_data()
-            st.toast("Épargne mise à jour !")
+            st.toast("C'est tout bon !")
 
 # --- ÉCRAN PRINCIPAL ---
 st.title("💖 POINT THUNES !")
 
 if not st.session_state.enveloppes:
-    st.info("Ouvre le menu à gauche pour commencer !")
+    st.info("Ouvre le menu à gauche pour créer tes enveloppes ! ✨")
 else:
     st.subheader("Dépenses du jour ?")
     col1, col2 = st.columns(2)
     with col1:
-        montant = st.number_input("Montant (€)", min_value=0.0, step=0.5, key="main_input")
+        montant = st.number_input("Montant (€)", min_value=0.0, step=0.5)
     with col2:
-        cat = st.selectbox("Dans quelle enveloppe ?", list(st.session_state.enveloppes.keys()))
+        cat = st.selectbox("Enveloppe", list(st.session_state.enveloppes.keys()))
     
     c1, c2 = st.columns(2)
     with c1:
         if st.button("🔥 VALIDER"):
             st.session_state.enveloppes[cat]['spent'] += montant
             save_data()
-            st.toast(f"Enregistré : -{montant}€")
+            st.toast(f"-{montant}€ sur {cat}")
             st.rerun()
     with c2:
         if st.button("☀️ RIEN"):
             st.balloons()
-            st.success("BRAVO ! 💰")
+            st.success("BIEN JOUÉ ! 🏆")
 
     st.divider()
     st.header("📍 RÉCAP")
