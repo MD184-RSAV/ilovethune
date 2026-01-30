@@ -19,23 +19,49 @@ def save_data():
     with open(DB_FILE, "w") as f:
         json.dump(data, f)
 
-# --- CONFIGURATION LOOK (Ton interface préférée) ---
+# --- CONFIGURATION LOOK ---
 st.set_page_config(page_title="Point Thunes !", page_icon="💖")
 
 st.markdown("""
     <style>
-    .stApp { background-color: #FF007F; } /* Fond Rose Vibrant */
+    /* Fond principal Rose Flash */
+    .stApp { background-color: #FF007F; } 
+    
+    /* Panneau latéral Rose Pâle */
+    [data-testid="stSidebar"] {
+        background-color: #FFC0CB !important; /* Rose pâle */
+    }
+    
+    /* Textes du panneau latéral en Rose Foncé pour la lisibilité */
+    [data-testid="stSidebar"] .stMarkdown p, 
+    [data-testid="stSidebar"] h1, 
+    [data-testid="stSidebar"] label {
+        color: #FF007F !important;
+    }
+
     [data-testid="stHeader"] { background-color: rgba(0,0,0,0); }
-    h1, h2, h3, p, span, label { color: #FFF333 !important; font-family: 'Comic Sans MS', cursive, sans-serif; font-weight: bold; }
+    
+    /* Styles généraux */
+    h1, h2, h3, p, span, label { 
+        color: #FFF333 !important; 
+        font-family: 'Comic Sans MS', cursive, sans-serif; 
+        font-weight: bold; 
+    }
+    
     .stButton>button { 
         background-color: #FFF333; color: #FF007F; 
         border-radius: 50px; border: 3px solid black;
         font-size: 20px; transition: 0.3s;
     }
     .stButton>button:hover { transform: scale(1.05); background-color: #ffffff; }
+    
     input { background-color: #FFF333 !important; color: #FF007F !important; }
-    .stMetric { background-color: rgba(255, 243, 51, 0.2); padding: 15px; border-radius: 15px; border: 2px solid #FFF333; }
-    /* Ajustement des barres de progression pour qu'elles soient Jaunes */
+    
+    .stMetric { 
+        background-color: rgba(255, 243, 51, 0.2); 
+        padding: 15px; border-radius: 15px; border: 2px solid #FFF333; 
+    }
+    
     .stProgress > div > div > div > div { background-color: #FFF333 !important; }
     </style>
     """, unsafe_allow_html=True)
@@ -58,7 +84,7 @@ with st.sidebar:
         budget = st.number_input("Montant mensuel (€)", min_value=0.0)
         if st.button("Créer l'enveloppe"):
             st.session_state.enveloppes[nom] = {'budget': budget, 'spent': 0.0}
-            save_data() # On sauvegarde !
+            save_data()
             st.rerun()
             
     with st.expander("Objectif Épargne"):
@@ -87,7 +113,7 @@ else:
     with c1:
         if st.button("🔥 Valider la dépense"):
             st.session_state.enveloppes[cat]['spent'] += montant
-            save_data() # On sauvegarde !
+            save_data()
             st.toast(f"Boom ! -{montant}€ pour {cat}")
             st.rerun()
     with c2:
