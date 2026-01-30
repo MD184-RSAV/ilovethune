@@ -1,75 +1,86 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime
 
-# --- CONFIGURATION DE LA PAGE ---
-st.set_page_config(page_title="Point Thunes !", page_icon="💰")
+# --- CONFIGURATION LOOK ---
+st.set_page_config(page_title="Point Thunes !", page_icon="💖")
 
-# --- STYLE PERSONNALISÉ (JAUNE & ROSE) ---
+# CSS pour le look Rose & Jaune
 st.markdown("""
     <style>
-    .main { background-color: #FFF333; } /* Fond Jaune */
-    h1, h2, h3 { color: #FF007F !important; font-family: 'Arial Black'; } /* Texte Rose */
+    .stApp { background-color: #FF007F; } /* Fond Rose Vibrant */
+    [data-testid="stHeader"] { background-color: rgba(0,0,0,0); }
+    h1, h2, h3, p, span, label { color: #FFF333 !important; font-family: 'Comic Sans MS', cursive, sans-serif; font-weight: bold; }
     .stButton>button { 
-        background-color: #FF007F; 
-        color: white; 
-        border-radius: 20px; 
-        border: 2px solid black;
-        font-weight: bold;
+        background-color: #FFF333; color: #FF007F; 
+        border-radius: 50px; border: 3px solid black;
+        font-size: 20px; transition: 0.3s;
     }
-    .stMetric { background-color: white; padding: 15px; border-radius: 15px; border: 3px solid #FF007F; }
+    .stButton>button:hover { transform: scale(1.05); background-color: #ffffff; }
+    input { background-color: #FFF333 !important; color: #FF007F !important; }
+    .stMetric { background-color: rgba(255, 243, 51, 0.2); padding: 15px; border-radius: 15px; border: 2px solid #FFF333; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- INITIALISATION DES DONNÉES ---
+# --- INITIALISATION ---
 if 'enveloppes' not in st.session_state:
-    st.session_state.enveloppes = {
-        'Courses': {'budget': 400.0, 'spent': 0.0},
-        'Loisirs': {'budget': 150.0, 'spent': 0.0},
-        'Epargne': {'budget': 2000.0, 'spent': 1200.0} # Objectif atteint progressivement
-    }
+    st.session_state.enveloppes = {}
+if 'epargne' not in st.session_state:
+    st.session_state.epargne = {"nom": "Épargne", "objectif": 0.0, "actuel": 0.0}
 
-# --- TITRE ---
-st.title("💖 Point Thunes !")
+# --- MENU LATÉRAL (CONFIGURATION) ---
+with st.sidebar:
+    st.title("⚙️ Ma Config")
+    with st.expander("Ajouter une enveloppe"):
+        nom = st.text_input("Nom (ex: Courses)")
+        budget = st.number_input("Montant mensuel (€)", min_value=0.0)
+        if st.button("Créer l'enveloppe"):
+            st.session_state.enveloppes[nom] = {'budget': budget, 'spent': 0.0}
+            st.rerun()
+            
+    with st.expander("Objectif Épargne"):
+        st.session_state.epargne["nom"] = st.text_input("Nom de l'objectif", value=st.session_state.epargne["nom"])
+        st.session_state.epargne["objectif"] = st.number_input("Montant cible (€)", value=st.session_state.epargne["objectif"])
+        st.session_state.epargne["actuel"] = st.number_input("Déjà épargné (€)", value=st.session_state.epargne["actuel"])
 
-# --- ÉCRAN DE SAISIE QUOTIDIENNE ---
-st.header("Combien as-tu dépensé aujourd'hui ?")
+# --- ÉCRAN PRINCIPAL ---
+st.title("💖 POINT THUNES !")
 
-with st.expander("Saisir une dépense", expanded=True):
+if not st.session_state.enveloppes:
+    st.warning("Commence par créer tes enveloppes dans le menu à gauche ! 👈")
+else:
+    # --- SAISIE DU JOUR ---
+    st.subheader("Combien as-tu dépensé aujourd'hui ?")
     col1, col2 = st.columns(2)
     with col1:
-        amount = st.number_input("Montant (€)", min_value=0.0, step=1.0)
+        montant = st.number_input("Montant (€)", min_value=0.0, step=0.5, key="new_spent")
     with col2:
-        cat = st.selectbox("Dans quelle enveloppe ?", list(st.session_state.enveloppes.keys()))
+        cat = st.selectbox("Enveloppe", list(st.session_state.enveloppes.keys()))
     
-    place = st.text_input("Où ? (ex: Monoprix, Cinéma)")
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("🔥 Valider la dépense"):
+            st.session_state.enveloppes[cat]['spent'] += montant
+            st.toast(f"Boom ! -{montant}€ pour {cat}")
+    with c2:
+        if st.button("☀️ Rien dépensé !"):
+            st.balloons()
+            st.success("BIEN JOUÉ ! Championne ! 🏆")
+
+    # --- DASHBOARD ---
+    st.divider()
+    st.header("📍 Où j'en suis")
     
-    if st.button("Valider la dépense"):
-        st.session_state.enveloppes[cat]['spent'] += amount
-        st.success(f"Enregistré : {amount}€ déduits de {cat} ! ✨")
-
-if st.button("☀️ Je n'ai rien dépensé aujourd'hui"):
-    st.balloons()
-    st.markdown("### **Bien joué !** Tes économies te disent merci. 🏆")
-
-# --- DASHBOARD DES ENVELOPPES ---
-st.divider()
-st.header("Mes Enveloppes")
-
-for name, data in st.session_state.enveloppes.items():
-    reste = data['budget'] - data['spent']
-    progress = min(data['spent'] / data['budget'], 1.0)
-    
-    col_a, col_b = st.columns([1, 3])
-    with col_a:
-        st.metric(label=name, value=f"{reste}€", delta=f"Total: {data['budget']}€")
-    with col_b:
-        st.write(f"Progression : {int(progress*100)}%")
+    for name, data in st.session_state.enveloppes.items():
+        reste = data['budget'] - data['spent']
+        progress = min(data['spent'] / data['budget'], 1.0) if data['budget'] > 0 else 0
+        
+        st.metric(label=f"Enveloppe {name}", value=f"{reste}€", delta=f"sur {data['budget']}€", delta_color="off")
         st.progress(progress)
-
-# --- SECTION ÉPARGNE SPÉCIALE ---
-st.divider()
-st.subheader("⭐ Objectif Épargne")
-e_data = st.session_state.enveloppes['Epargne']
-st.write(f"Cagnotte actuelle : **{e_data['spent']}€** sur un objectif de **{e_data['budget']}€**")
-st.progress(min(e_data['spent'] / e_data['budget'], 1.0))
+    
+    # --- ÉPARGNE ---
+    st.divider()
+    ep = st.session_state.epargne
+    prog_ep = min(ep['actuel'] / ep['objectif'], 1.0) if ep['objectif'] > 0 else 0
+    st.subheader(f"⭐ {ep['nom']}")
+    st.metric("Total épargné", f"{ep['actuel']}€", f"Objectif: {ep['objectif']}€")
+    st.progress(prog_ep)
