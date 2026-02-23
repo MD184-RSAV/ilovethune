@@ -1,23 +1,69 @@
 import streamlit as st
-import json
-import os
+import gspread
+from google.oauth2.service_account import Credentials
 
-# --- LOGIQUE DE SAUVEGARDE ---
-DB_FILE = "mes_thunes_data.json"
+# --- LOGIQUE DE SAUVEGARDE (Google Sheets) ---
+
+def get_sheets():
+    creds = Credentials.from_service_account_info(
+        st.secrets["gcp_service_account"],
+        scopes=[
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive"
+        ]
+    )
+    client = gspread.authorize(creds)
+    spreadsheet = client.open("mes_thunes_data")
+    return spreadsheet.worksheet("enveloppes"), spreadsheet.worksheet("epargne")
 
 def load_data():
-    if os.path.exists(DB_FILE):
-        with open(DB_FILE, "r") as f:
-            return json.load(f)
-    return None
+    try:
+        sheet_env, sheet_ep = get_sheets()
+
+        # Charger les enveloppes
+        enveloppes = {}
+        rows = sheet_env.get_all_records()  # [{'nom': ..., 'budget': ..., 'spent': ...}]
+        for row in rows:
+            enveloppes[row["nom"]] = {
+                "budget": float(row["budget"]),
+                "spent": float(row["spent"])
+            }
+
+        # Charger l'épargne
+        ep_rows = sheet_ep.get_all_records()
+        if ep_rows:
+            epargne = {
+                "nom": ep_rows[0]["nom"],
+                "objectif": float(ep_rows[0]["objectif"]),
+                "actuel": float(ep_rows[0]["actuel"])
+            }
+        else:
+            epargne = {"nom": "Épargne", "objectif": 0.0, "actuel": 0.0}
+
+        return {"enveloppes": enveloppes, "epargne": epargne}
+
+    except Exception as e:
+        st.warning(f"Impossible de charger les données : {e}")
+        return None
 
 def save_data():
-    data = {
-        "enveloppes": st.session_state.enveloppes,
-        "epargne": st.session_state.epargne
-    }
-    with open(DB_FILE, "w") as f:
-        json.dump(data, f)
+    try:
+        sheet_env, sheet_ep = get_sheets()
+
+        # Sauvegarder les enveloppes (on réécrit toute la feuille)
+        sheet_env.clear()
+        sheet_env.append_row(["nom", "budget", "spent"])  # en-têtes
+        for nom, data in st.session_state.enveloppes.items():
+            sheet_env.append_row([nom, data["budget"], data["spent"]])
+
+        # Sauvegarder l'épargne
+        ep = st.session_state.epargne
+        sheet_ep.clear()
+        sheet_ep.append_row(["nom", "objectif", "actuel"])  # en-têtes
+        sheet_ep.append_row([ep["nom"], ep["objectif"], ep["actuel"]])
+
+    except Exception as e:
+        st.error(f"Erreur de sauvegarde : {e}")
 
 # --- CONFIGURATION LOOK ---
 st.set_page_config(page_title="Point Thunes !", page_icon="💖")
@@ -107,7 +153,6 @@ with st.sidebar:
 
     st.markdown("---")
     
-    # NOUVELLE SECTION : SUPPRESSION
     if st.session_state.enveloppes:
         with st.expander("🗑️ SUPPRIMER UNE ENVELOPPE"):
             to_delete = st.selectbox("Laquelle ?", list(st.session_state.enveloppes.keys()))
@@ -116,7 +161,6 @@ with st.sidebar:
                 save_data()
                 st.rerun()
 
-    # NOUVELLE SECTION : NOUVEAU MOIS
     st.markdown("---")
     if st.button("🗓️ NOUVEAU MOIS"):
         for env in st.session_state.enveloppes:
